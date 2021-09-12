@@ -1,0 +1,317 @@
+---
+title: "Data608_HW1"
+author: "Alexis Mekueko"
+date: "9/11/2021"
+output: 
+  
+  html_document: default
+  html_notebook: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r load-packages, results='hide',warning=FALSE, message=FALSE, echo=FALSE}
+
+#library(tidyverse) #loading all library needed for this assignment
+#remove.packages(tidyverse)
+#library(openintro)
+#library(lahman) #database for baseball
+library(caret)
+library(knitr)
+#library(markdown)
+#library(rmarkdown)
+library(dplyr)
+library(tidyr)
+library(naniar)
+library(reshape)
+library(ggplot2)
+library(qqplotr)
+library(stats)
+library(statsr)
+library(GGally)
+library(pdftools)
+library(correlation)
+library(Metrics)
+library(e1071)
+library(rocc)
+library(pROC)
+library(plm)
+library(car)
+#library(VIF)
+#library(MASS)
+#library(AICcmodavg)
+#library(gridExtra)
+#library(ggpubr)
+#library(glmulti)
+
+
+
+```
+
+
+**DATA608 Principles of Data Visualization and Introduction to ggplot2**
+
+[Github Link](https://github.com/asmozo24/Data605_House-Prices)
+[Web Link](https://rpubs.com/amekueko/807900)
+
+Note: The dataset used for this homework is about the 5,000 fastest growing companies in the US (as compiled by Inc. magazine).
+Provided by: Charley Ferrari
+
+## 1. Data Structure
+
+```{r, echo=FALSE}
+
+inc <- read.csv("https://raw.githubusercontent.com/charleyferrari/CUNY_DATA_608/master/module1/Data/inc5000_data.csv", header= TRUE)
+
+inc %>%
+  head(8)%>%
+  kable()
+#View(inc)
+#head(inc)
+#summary(inc)
+
+
+```
+
+
+## 2. Data Preparation
+
+### 2.1 Checking for Missing Values
+
+
+And lets preview this data:
+
+
+Think a bit on what these summaries mean. Use the space below to add some more relevant non-visual exploratory information you think helps you understand this data:
+
+
+```{r }
+
+misValues <- sum(is.na(inc))# Returning the column names with missing values
+#column_na1 <- colnames(insuranceT_df1)[ apply(insuranceT_df1, 2, anyNA) ] # 2 is dimension(dim())
+
+#misValues1 <- sum(is.na(prof.salary$yrs.since.phd))
+#misValues1
+
+cat("From Professor Salary dataset, the total of missing values is : ", misValues)
+
+
+```
+
+Let's visualize the missing values per variable.
+
+```{r, echo=FALSE}
+#view(inc)
+
+missing.values <- function(df){
+    df %>%
+    gather(key = "variables", value = "val") %>%
+    mutate(is.missing = is.na(val)) %>%
+    group_by(variables, is.missing) %>%
+    summarise(number.missing = n()) %>%
+    filter(is.missing==T) %>%
+    dplyr::select(-is.missing) %>%
+    arrange(desc(number.missing)) 
+}
+
+#missing.values(inc)%>% kable()
+
+# This plot of missing values isn't working.
+
+# plot missing values
+ # missing.values(inc) %>%
+ #   ggplot() +
+ #     geom_bar(aes(x=variables, y=number.missing), stat = 'identity', col='blue') +
+ #     labs(x='variables', y="number of missing values", title='Number of missing values') +
+ #   theme(axis.text.x = element_text(angle = 100, hjust = 0.2))
+
+#Another way of visualizing missing value
+#vis_miss(training_df)
+gg_miss_var(inc, show_pct = TRUE) + labs(y = "Missing Values in % to total record")+ theme()
+colSums(is.na(inc))%>% kable()
+#cat("\n Even more, the table below shows the total number of missing values per variable")
+apply(is.na(inc), 2, sum)
+
+
+
+```
+
+Variable, Employees has 12 missing values which represents 0.24% of the total record. We can delete this missing values as it has no significant impact on the entire data.
+
+```{r, echo=FALSE}
+inc1 <- na.omit(inc)
+apply(is.na(inc1), 2, sum)
+
+```
+
+Let's see stats
+
+```{r, echo=FALSE}
+
+#library(Hmisc)
+#describe(inc1)
+#library(pastecs)
+#stat.desc(inc1) #, norm=FALSE, p=0.95) #basic=T,desc=F
+
+summary(inc1)
+
+```
+
+
+## Question 1
+
+Create a graph that shows the distribution of companies in the dataset by State (ie how many are in each state). There are a lot of States, so consider which axis you should use. This visualization is ultimately going to be consumed on a 'portrait' oriented screen (ie taller than wide), which should further guide your layout choices.
+
+
+### Companies distribution by state
+
+```{r mychunck1, dpi = 100, fig.width = 10, fig.height = 10} 
+#my-chunk1, R.options = list(width = 10)} or fig.dim = c(8,6)
+library(ggplot2)
+
+#checking variable distribution
+#library(ggthemes)
+#plot1 <-inc1$State %>%
+#   gather() %>%                             
+#   ggplot(aes(value)) +                     
+#     facet_wrap(~ key, scales = "free") +  
+#     geom_bar() +
+#   theme_wsj()+ scale_colour_wsj("colors6")
+# plot1
+
+
+
+# Something wrong with the code below...i have used it in the pass with no issue
+ #  ggplot(inc1, aes(x= (State))) + 
+ #    geom_bar(aes(y = ..prop.., fill = factor(..x..)), stat="count") +
+ #    geom_text(aes( label = scales::percent(..prop..),
+ #                   y= ..prop.. ), stat= "count", vjust = -.5) +
+ #    labs(y = "Percent") +
+ #    scale_y_continuous(labels=percent)
+ #    
+ # ggplot(inc1, aes(x=State)) +   geom_bar(stat='identity', position='dodge')
+
+#ggplot(inc1) + geom_bar(aes(x = State))    
+#     
+# ggplot(inc1) + geom_bar(aes(y = State))    
+# 
+# 
+# 
+# ggplot(data=inc1, aes(y=State)) +
+# geom_bar(fill= rainbow(52)) +
+# geom_text(stat='count', aes(label=..count..), vjust=-1)
+
+ #     geom_bar(aes(x=variables, y=number.missing), stat = 'identity', col='blue') +
+ #     labs(x='variables', y="number of missing values", title='Number of missing values') +
+ #   theme(axis.text.x = element_text(angle = 100, hjust = 0.2))
+
+ggplot(data=inc1, aes(x=State)) +
+geom_bar(fill= rainbow(52)) +
+geom_text(stat='count', size= 4, aes(label=..count..), vjust=-0.1)+
+ #     geom_bar(aes(x=variables, y=number.missing), stat = 'identity', col='blue') +
+ labs(x='Number of Companies', y="States", title='Number of Companies by State') +
+ theme(axis.text.x = element_text(angle = 100, hjust = 0.1))
+
+print("Display plot in verticale, We could add the industry with fill = ? , but something goes wrong when adding reorder() aes(x = reorder(?), ...")
+
+ggplot(data=inc1, aes(y=State)) +
+geom_bar(fill= rainbow(52)) +
+geom_text(stat='count', size= 4, aes(label=..count..), vjust=-0)+
+ #     geom_bar(aes(x=variables, y=number.missing), stat = 'identity', col='blue') +
+ labs(x='Number of Companies', y="States", title='Number of Companies by State') +
+ theme(axis.text.x = element_text(angle = 180, hjust = 0.2))
+
+
+# library(scales)
+# plot1b <- ggplot(data=inc1, aes(x=States)) + 
+#       geom_bar(aes(y = (..count..)/sum(..count..)))
+# plot1b + scale_y_continuous(labels = percent)
+
+print("Another way of presenting the result and fixing the error with reorder()")
+count_companyState <- inc1 %>%
+  group_by(State) %>%
+  summarise(Number_of_Companies = n())
+  
+#count_companyState
+
+
+
+ggplot(count_companyState, aes(x = Number_of_Companies, y = reorder(State, -Number_of_Companies))) + geom_bar(stat = "identity", col= "blue")
+
+
+```
+
+
+
+## Quesiton 2
+
+Lets dig in on the state with the 3rd most companies in the data set. Imagine you work for the state and are interested in how many people are employed by companies in different industries. Create a plot that shows the average and/or median employment by industry for companies in this state (only use cases with full data, use R's `complete.cases()` function.) In addition to this, your graph should show how variable the ranges are, and you should deal with outliers.
+
+```{r mychunck2, fig.width = 10, fig.height = 10}
+# We need to filter the dataframe by third-state 
+count_companyState[
+  with(count_companyState, order(Number_of_Companies)),
+]
+
+inc2 <- inc1 %>%
+  filter(State == 'NY')%>%
+  filter(complete.cases(.))
+#View(inc2)
+
+inc2 <- inc2 %>%
+  group_by(Industry)%>%
+  summarise(mean_Employees = mean(Employees), median_Employees = median(Employees), Number_of_Companies = n())
+
+# something wrong when adding arrange()
+#%>%
+  #arrange(-mean_Employees)
+  #arrange(Industry, -mean_Employees, median_Employees, Number_of_Companies)
+
+ggplot(inc2, aes(x = median_Employees, y = reorder(Industry, -median_Employees))) + geom_bar(stat = "identity", col = "green")
+
+
+ggplot(data=inc2, aes(x= Number_of_Companies, Industry), y= reorder(Industry )) +
+geom_bar(stat= 'identity', fill = 'orange') +
+geom_text(size= 4, aes(label=round(mean_Employees, 0)), vjust=-1)+
+ #     geom_bar(aes(x=variables, y=number.missing), stat = 'identity', col='blue') +
+ labs(x='Number of Companies', y="States", title='Average Employees per Industry in new York State') +
+ theme(axis.text.x = element_text(angle = 180, hjust = 0.2))
+
+ggplot(inc2, aes(x=Number_of_Companies, y=Industry, fill=median_Employees)) + 
+  geom_bar(stat="identity", position="stack") +
+  geom_text(aes(y=Industry, x=5, label=round(mean_Employees,0)), 
+            size=4, inherit.aes=FALSE)
+
+
+```
+
+## Question 3
+
+Now imagine you work for an investor and want to see which industries generate the most revenue per employee. Create a chart that makes this information clear. Once again, the distribution per industry should be shown.
+
+```{r mychunck3, fig.width = 10, fig.height = 10}
+inc3 <- inc1 %>%
+  filter(State == 'NY')%>%
+  filter(complete.cases(.))
+
+# Creating new dataframe with total revenue by industry, total revenue by employee per New York State
+inc3 <- inc3 %>%
+  group_by(Industry)%>%
+  summarise(revenueTotal = sum(Revenue), EmployeesTotal = sum(Employees)) %>%
+  mutate(Revenue_per_Employees = revenueTotal/ EmployeesTotal)
+
+ggplot(inc3, aes(x = Revenue_per_Employees, y = reorder(Industry, -Revenue_per_Employees))) + geom_bar(stat = "identity", fill = "coral")+geom_text(size= 4, aes(label=round(Revenue_per_Employees, 0)), vjust=-0)+
+ #     geom_bar(aes(x=variables, y=number.missing), stat = 'identity', col='blue') +
+ labs(x='Revenue_per_Employees', y="States", title='Industry Revenue per Employee in new York State') +
+ theme(axis.text.x = element_text(angle = 180, hjust = 0.2))
+
+
+```
+
+
+
+
